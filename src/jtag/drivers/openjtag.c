@@ -751,12 +751,14 @@ static void openjtag_execute_runtest(struct jtag_command *cmd)
 	enum tap_state end_state = cmd->cmd.runtest->end_state;
 	tap_set_end_state(end_state);
 
-	/* only do a state_move when we're not already in IDLE */
-	if (tap_get_state() != TAP_IDLE) {
-		openjtag_set_state(TAP_IDLE);
-		tap_set_state(TAP_IDLE);
-	}
+    // Determine if we can skip TAP_IDLE
+    int skip_idle = ~(cmd->cmd.runtest->dmi_delay == 0 &&
+                     !cmd->cmd.runtest->is_last_scan);
 
+    if (!skip_idle && tap_get_state() != TAP_IDLE) {
+        openjtag_set_state(TAP_IDLE);
+        tap_set_state(TAP_IDLE);
+    }
 	if (openjtag_variant != OPENJTAG_VARIANT_CY7C65215 ||
 		cmd->cmd.runtest->num_cycles) {
 		uint8_t command;
